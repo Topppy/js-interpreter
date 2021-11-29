@@ -4,13 +4,22 @@ const acorn = require("acorn");
 import Interpreter from "./interpreter";
 import { Scope } from "./scope";
 
-
 export function run(code: string) {
   const ast = acorn.parse(code, {
     ecmaVersion: 8,
     sourceType: "script",
   });
-  const globalScope = new Scope('function')
+  // 创建全局作用域
+  const globalScope = new Scope("block");
+  // 定义module.exports
+  const $exports = {};
+  const $module = { exports: $exports };
+  globalScope.$const("module", $module);
+  globalScope.$var("exports", $exports);
   const jsInterpreter = new Interpreter(null, globalScope);
-  return jsInterpreter.interpret(ast);
+  jsInterpreter.interpret(ast);
+  // exports
+  const moduleVar = globalScope.$find('module')
+  console.log('moduleVar:', moduleVar)
+  return moduleVar ? moduleVar.$get().exports : null
 }

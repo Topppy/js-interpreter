@@ -8,5 +8,8 @@
 
 - https://www.digitalocean.com/community/tutorials/typescript-new-project
 - 用js写一个js解释器：https://juejin.cn/post/6898093501376905230
+- 前端与编译原理——用JS写一个JS解释器：https://segmentfault.com/a/1190000017241258
 - AST explorer：https://astexplorer.net/
 - AST类型表：https://juejin.cn/post/6844903798347939853
+- https://www.lhsz.xyz/read/llvm-guide-zh/Chapter02-README.md
+- https://segmentfault.com/a/1190000015618701

@@ -16,9 +16,31 @@ const es5 = {
     });
     // todo 如何返回多个值
     console.log("es5:Program:res", res);
-    return res[0]
+    return res[0];
   },
-  VariableDeclaration() {},
+  // 变量声明
+  VariableDeclaration(nodeIterator: Interpreter<ESTree.VariableDeclaration>) {
+    const { node, scope } = nodeIterator;
+    console.log("es5:VariableDeclaration", node, scope);
+    const { declarations, kind } = node;
+    // 上面提到,生声明可能存在多个描述(let a = 1, b = 2;),所以我们这里对它进行遍历:
+    // 这里遍历出来的每个item是VariableDeclarator节点
+    declarations.forEach((declar) => {
+      const { id, init } = <ESTree.VariableDeclarator>declar;
+      // 变量名称节点,这里拿到的是age
+      const key = (<ESTree.Identifier>id).name;
+      // 判断变量是否进行了初始化 ? 查找init节点值(Literal类型直接返回值:18) : 置为undefined;
+      const value = init ? nodeIterator.interpret(init) : undefined;
+      // 根据不同的kind(var/const/let)声明进行定义,即var age = 18
+      // 在作用域当中定义变量
+      // 如果当前是块级作用域且变量用var定义，则定义到父级作用域
+      if (scope.type === "block" && kind === "var") {
+        scope.parent?.$declare(kind, key, value);
+      } else {
+        scope.$declare(kind, key, value);
+      }
+    });
+  },
   // 表达式语句节点的处理,同样访问expression 属性即可。
   ExpressionStatement(nodeIterator: Interpreter<ESTree.ExpressionStatement>) {
     const { node } = nodeIterator;
@@ -71,9 +93,38 @@ const es5 = {
       // 其他
     } else return node.value;
   },
-  MemberExpression() {},
+  // 成员节点表达式
+  MemberExpression(nodeIterator: Interpreter<ESTree.MemberExpression>) {
+    const { node, scope } = nodeIterator
+    // object: 引用对象的表达式节点
+    // property: 属性名称
+    // computed: 
+    //   true: 使用 [] 引用，要求property: Expression
+    //   false: 使用 . 来引用，要求property：Identifier
+    const { object, property, computed } = node
+    const prop = computed ? nodeIterator.interpret(property, scope): (<ESTree.Identifier>property).name
+    // 解析出来对象
+    const obj = nodeIterator.interpret(object)
+    return obj[prop]
+  },
   CallExpression() {},
-  Identifier() {},
+  Identifier(nodeIterator: Interpreter<ESTree.Identifier>) {
+    // 标识符节点,我们只要通过访问作用域,访问该值即可。
+    const { node, scope } = nodeIterator;
+    console.log("es5:Identifier", nodeIterator);
+    const name = node.name;
+    // walk identifier
+    // 这个例子中查找的是age变量
+    const variable = scope.$find(name);
+    // 返回的是定义的变量对象(age)的值,即18
+    return variable;
+  },
+  // 赋值表达式
+  AssignmentExpression(nodeIterator: Interpreter<ESTree.AssignmentExpression>) {
+    const { node, scope } = nodeIterator
+    // AssignmentExpression 有两种可能： Pattern | MemberExpression;
+    // “讲得更准确一点，RHS查询与简单地查找某个变量的值别无二致，而LHS查询则是试图找到变量的容器本身，从而可以对其赋值。”https://segmentfault.com/a/1190000015618701
+  },
   FunctionDeclaration() {},
   FunctionExpression() {},
   ArrowFunctionExpression() {},
@@ -110,7 +161,7 @@ const es5 = {
   UnaryExpression() {},
 
   UpdateExpression() {},
-  AssignmentExpression() {},
+  
 
   LogicalExpression() {},
   ConditionalExpression() {},

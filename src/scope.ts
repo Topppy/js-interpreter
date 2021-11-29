@@ -7,11 +7,11 @@ export class Scope {
   /**
    *  作用域类型
    */
-  private type: ScopeType;
+  type: ScopeType;
   /**
    *  父作用域
    */
-  private parent: Scope | null;
+  parent: Scope | null;
   /**
    *  当前作用域
    */
@@ -23,15 +23,15 @@ export class Scope {
     this.content = {};
   }
   // let类型变量定义
-  private $let(rawName: string, value: any) {
+  $let(rawName: string, value: any) {
     this.content[rawName] = new ScopeVar("let", value);
   }
   // const类型变量定义
-  private $const(rawName: string, value: any) {
+  $const(rawName: string, value: any) {
     this.content[rawName] = new ScopeVar("const", value);
   }
   // var类型变量定义
-  private $var(rawName: string, value: any) {
+  $var(rawName: string, value: any) {
     // 如果不是全局作用域且不是函数作用域,找到全局作用域,存储变量
     // 这里就是我们常说的Hoisting (变量提升)
     let scope: Scope = this;
@@ -41,6 +41,7 @@ export class Scope {
     }
     // 不管是否存在声明直接覆盖
     scope.content[rawName] = new ScopeVar("var", value);
+    console.log("scope:$var", rawName, scope);
   }
   // 是否在当前作用域已定义let、const
   private $hasDefinition(kind: Kind, rawName: string): boolean {
