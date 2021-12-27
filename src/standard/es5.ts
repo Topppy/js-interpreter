@@ -1,5 +1,6 @@
 import * as ESTree from "estree";
 import Interpreter from "../interpreter";
+import { Scope } from "../scope";
 import { PropVar, Var } from "../variable";
 
 type OpMap = {
@@ -9,6 +10,37 @@ type OpMap = {
 type AssignmentExpressionOperatortraverseMapType = {
   [op in ESTree.AssignmentOperator]: ($var: Var | PropVar, v: any) => any;
 };
+
+/**
+ * LHS查询
+ * @param node 节点
+ * @param nodeIterator 节点的上级表达式的遍历器
+ * @returns
+ */
+function getIdentifierOrMemberExpressionValue(
+  node: ESTree.Pattern | ESTree.Expression,
+  nodeIterator: Interpreter<ESTree.Expression>
+) {
+  let $var;
+  if (node.type === "Identifier") {
+    // 标识符类型 直接查找
+    $var = nodeIterator.scope.$find(node.name);
+  } else if (node.type === "MemberExpression") {
+    // 成员表达式类型,处理方式跟上面差不多,不同的是这边需要自定义一个变量对象的实现
+    const { object, property, computed } = node;
+    const obj = nodeIterator.interpret(object, nodeIterator.scope);
+    const prop = computed
+      ? nodeIterator.interpret(property, nodeIterator.scope)
+      : (<ESTree.Identifier>property).name;
+    $var = new PropVar(obj, prop);
+    console.log("es5:AssignmentExpression MemberExpression", $var, obj, prop);
+  } else {
+    throw new Error(
+      `canjs: Not support to get value of node type "${(<any>node).type}"`
+    );
+  }
+  return $var;
+}
 // 节点处理器, 节点属性参考 https://astexplorer.net/
 const es5 = {
   // 根节点的处理很简单,我们只要对它的body属性进行遍历,然后访问该节点即可。
@@ -20,8 +52,8 @@ const es5 = {
       return nodeIterator.interpret(bodyNode);
     });
     // todo 如何返回多个值
-    console.log("es5:Program:res", res);
-    return res[0];
+    // console.log("es5:Program:res", res);
+    // return res[0];
   },
   // 变量声明
   VariableDeclaration(nodeIterator: Interpreter<ESTree.VariableDeclaration>) {
@@ -129,51 +161,37 @@ const es5 = {
   // 赋值运算符， https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Expressions_and_Operators#%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6
   AssignmentExpressionOperatortraverseMap: {
     "=": ($var, v) => ($var.$set(v), v),
-    "+=": ($var, v) => ($var.$set(v + $var.$get()),$var.$get()),
-    "-=": ($var, v) => ($var.$set(v - $var.$get()),$var.$get()),
-    "*=": ($var, v) => ($var.$set(v * $var.$get()),$var.$get()),
-    "/=": ($var, v) => ($var.$set(v / $var.$get()),$var.$get()),
-    "%=": ($var, v) => ($var.$set(v % $var.$get()),$var.$get()),
-    "**=": ($var, v) => ($var.$set(v ** $var.$get()),$var.$get()),
-    "<<=": ($var, v) => ($var.$set(v << $var.$get()),$var.$get()),
-    ">>=": ($var, v) => ($var.$set(v >> $var.$get()),$var.$get()),
-    ">>>=": ($var, v) => ($var.$set(v >>> $var.$get()),$var.$get()),
-    "|=": ($var, v) => ($var.$set(v | $var.$get()),$var.$get()),
-    "^=": ($var, v) => ($var.$set(v ^ $var.$get()),$var.$get()),
-    "&=": ($var, v) => ($var.$set(v & $var.$get()),$var.$get()),
+    "+=": ($var, v) => ($var.$set(v + $var.$get()), $var.$get()),
+    "-=": ($var, v) => ($var.$set(v - $var.$get()), $var.$get()),
+    "*=": ($var, v) => ($var.$set(v * $var.$get()), $var.$get()),
+    "/=": ($var, v) => ($var.$set(v / $var.$get()), $var.$get()),
+    "%=": ($var, v) => ($var.$set(v % $var.$get()), $var.$get()),
+    "**=": ($var, v) => ($var.$set(v ** $var.$get()), $var.$get()),
+    "<<=": ($var, v) => ($var.$set(v << $var.$get()), $var.$get()),
+    ">>=": ($var, v) => ($var.$set(v >> $var.$get()), $var.$get()),
+    ">>>=": ($var, v) => ($var.$set(v >>> $var.$get()), $var.$get()),
+    "|=": ($var, v) => ($var.$set(v | $var.$get()), $var.$get()),
+    "^=": ($var, v) => ($var.$set(v ^ $var.$get()), $var.$get()),
+    "&=": ($var, v) => ($var.$set(v & $var.$get()), $var.$get()),
   } as AssignmentExpressionOperatortraverseMapType,
   // 赋值表达式
   AssignmentExpression(nodeIterator: Interpreter<ESTree.AssignmentExpression>) {
     const { node, scope } = nodeIterator;
     console.log("es5:AssignmentExpression", node);
     const { left, operator, right } = node;
-    // AssignmentExpression 有两种可能： Identifier ($var, v) => {}
+    // AssignmentExpression 有两种可能： Identifier /  MemberExpression
     // “讲得更准确一点，RHS查询与简单地查找某个变量的值别无二致，而LHS查询则是试图找到变量的容器本身，从而可以对其赋值。
-    // “赋值操作的目标是谁（LHS）”以及“谁是赋值操作的源头（RHS）
-    // ”https://segmentfault.com/a/1190000015618701
+    // “赋值操作的目标是谁（LHS）”以及“谁是赋值操作的源头（RHS），https://segmentfault.com/a/1190000015618701
     // LHS
-    let $var
-    if (left.type === "Identifier") {
-      // 标识符类型 直接查找
-      $var = scope.$find(left.name);
-    } else if (left.type == "MemberExpression") {
-      // 成员表达式类型,处理方式跟上面差不多,不同的是这边需要自定义一个变量对象的实现
-      const { object, property, computed } = left;
-      const obj = nodeIterator.interpret(object, scope);
-      const prop = computed
-        ? nodeIterator.interpret(property, scope)
-        : (<ESTree.Identifier>property).name;
-      $var = new PropVar(obj, prop);
-      console.log('es5:AssignmentExpression MemberExpression', $var, obj, prop)
-    } else {
-      throw Error(`AssignmentExpression error unknown left type: ${left.type}`)
-    }
+    let $var = getIdentifierOrMemberExpressionValue(left, nodeIterator);
+    // RHS
+    // 不同操作符处理,查询到right节点值,对left节点进行赋值。
     const res =
       nodeIterator.nodeHandler.AssignmentExpressionOperatortraverseMap[
         operator
       ]($var, nodeIterator.interpret(right, scope));
-    console.log('AssignmentExpression res: ', res)
-    return res
+    console.log("AssignmentExpression res: ", res);
+    return res;
   },
   FunctionDeclaration() {},
   FunctionExpression() {},
@@ -181,7 +199,16 @@ const es5 = {
   SwitchCase() {},
   CatchClause() {},
   VariableDeclarator() {},
-  BlockStatement() {},
+  // 块级作用域
+  BlockStatement(nodeIterator: Interpreter<ESTree.BlockStatement>) {
+    const { node } = nodeIterator
+    // 创建块级作用域
+    const blockScope = new Scope("block");
+    console.log("es5:BlockStatement:body", node);
+    node.body.map((bodyNode) => {
+      return nodeIterator.interpret(bodyNode, blockScope);
+    });
+  },
   EmptyStatement() {},
 
   DebuggerStatement() {},
@@ -198,20 +225,42 @@ const es5 = {
   TryStatement() {},
   WhileStatement() {},
   DoWhileStatement() {},
-
-  ForStatement() {},
+  // for 循环语句节点
+  ForStatement(nodeIterator: Interpreter<ESTree.ForStatement>) {
+    const { node } = nodeIterator
+  },
   ForInStatement() {},
   ForOfStatement() {},
   Declaration() {},
   ClassDeclaration() {},
   ThisExpression() {},
   ArrayExpression() {},
+  // todo
   ObjectExpression() {},
   YieldExpression() {},
   UnaryExpression() {},
 
-  // update 运算表达式节点（for循环）
-  UpdateExpression() {},
+  // update 运算表达式节点（for循环），即 ++/--，和一元运算符类似，只是 operator 指向的节点对象类型不同，这里是 update 运算符。
+  UpdateExpression(nodeIterator: Interpreter<ESTree.UpdateExpression>) {
+    const { node } = nodeIterator;
+    console.log("es5:UpdateExpression", node);
+    // update 运算符，值为 ++ 或 --，配合 update 表达式节点的 prefix 属性来表示前后。
+    const { operator, argument, prefix } = node;
+    let $var = getIdentifierOrMemberExpressionValue(argument, nodeIterator);
+    let val = $var.$get();
+    // 更新节点的值
+    operator === "++" ? $var.$set(val + 1) : $var.$set(val - 1);
+    // todo 这里可能抽复用 一元运算符
+    if (operator === "++" && prefix) {
+      return ++val;
+    } else if (operator === "++" && !prefix) {
+      return val++;
+    } else if (operator === "--" && prefix) {
+      return --val;
+    } else {
+      return val--;
+    }
+  },
 
   LogicalExpression() {},
   ConditionalExpression() {},
