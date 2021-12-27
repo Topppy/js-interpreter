@@ -1,8 +1,13 @@
 import * as ESTree from "estree";
 import Interpreter from "../interpreter";
+import { PropVar, Var } from "../variable";
 
 type OpMap = {
   [op in ESTree.BinaryOperator]: (a: any, b: any) => void;
+};
+
+type AssignmentExpressionOperatortraverseMapType = {
+  [op in ESTree.AssignmentOperator]: (leftV: Var | PropVar, v: any) => any;
 };
 // 节点处理器, 节点属性参考 https://astexplorer.net/
 const es5 = {
@@ -95,35 +100,82 @@ const es5 = {
   },
   // 成员节点表达式
   MemberExpression(nodeIterator: Interpreter<ESTree.MemberExpression>) {
-    const { node, scope } = nodeIterator
+    const { node, scope } = nodeIterator;
+    console.log("es5:MemberExpression", node);
     // object: 引用对象的表达式节点
     // property: 属性名称
-    // computed: 
+    // computed:
     //   true: 使用 [] 引用，要求property: Expression
     //   false: 使用 . 来引用，要求property：Identifier
-    const { object, property, computed } = node
-    const prop = computed ? nodeIterator.interpret(property, scope): (<ESTree.Identifier>property).name
+    const { object, property, computed } = node;
+    const prop = computed
+      ? nodeIterator.interpret(property, scope)
+      : (<ESTree.Identifier>property).name;
     // 解析出来对象
-    const obj = nodeIterator.interpret(object)
-    return obj[prop]
+    const obj = nodeIterator.interpret(object);
+    return obj[prop];
   },
   CallExpression() {},
+  // 标识符节点
   Identifier(nodeIterator: Interpreter<ESTree.Identifier>) {
     // 标识符节点,我们只要通过访问作用域,访问该值即可。
     const { node, scope } = nodeIterator;
-    console.log("es5:Identifier", nodeIterator);
     const name = node.name;
     // walk identifier
     // 这个例子中查找的是age变量
     const variable = scope.$find(name);
-    // 返回的是定义的变量对象(age)的值,即18
-    return variable;
+    // 返回的是定义的变量对象(age)的值value,即18
+    console.log("es5:Identifier", node, variable, variable.$get());
+    return variable.$get();
   },
+  AssignmentExpressionOperatortraverseMap: {
+    "=": (leftV, v) => (leftV.$set(v), v),
+    // todo
+    "+=": (leftV, v) => {},
+    "-=": (leftV, v) => {},
+    "*=": (leftV, v) => {},
+    "/=": (leftV, v) => {},
+    "%=": (leftV, v) => {},
+    "**=": (leftV, v) => {},
+    "<<=": (leftV, v) => {},
+    ">>=": (leftV, v) => {},
+    ">>>=": (leftV, v) => {},
+    "|=": (leftV, v) => {},
+    "^=": (leftV, v) => {},
+    "&=": (leftV, v) => {},
+  } as AssignmentExpressionOperatortraverseMapType,
   // 赋值表达式
   AssignmentExpression(nodeIterator: Interpreter<ESTree.AssignmentExpression>) {
-    const { node, scope } = nodeIterator
-    // AssignmentExpression 有两种可能： Pattern | MemberExpression;
-    // “讲得更准确一点，RHS查询与简单地查找某个变量的值别无二致，而LHS查询则是试图找到变量的容器本身，从而可以对其赋值。”https://segmentfault.com/a/1190000015618701
+    const { node, scope } = nodeIterator;
+    console.log("es5:AssignmentExpression", node);
+    const { left, operator, right } = node;
+    // AssignmentExpression 有两种可能： Identifier (leftV, v) => {}
+    // “讲得更准确一点，RHS查询与简单地查找某个变量的值别无二致，而LHS查询则是试图找到变量的容器本身，从而可以对其赋值。
+    // “赋值操作的目标是谁（LHS）”以及“谁是赋值操作的源头（RHS）
+    // ”https://segmentfault.com/a/1190000015618701
+    // LHS
+    let leftV
+    if (left.type === "Identifier") {
+      // 标识符类型 直接查找
+      leftV = scope.$find(left.name);
+    } else if (left.type == "MemberExpression") {
+      // 成员表达式类型,处理方式跟上面差不多,不同的是这边需要自定义一个变量对象的实现
+      const { object, property, computed } = left;
+      const obj = nodeIterator.interpret(object, scope);
+      const prop = computed
+        ? nodeIterator.interpret(property, scope)
+        : (<ESTree.Identifier>property).name;
+      leftV = new PropVar(obj, prop);
+      console.log('es5:AssignmentExpression MemberExpression', leftV, obj, prop)
+    } else {
+      throw Error(`AssignmentExpression error unknown left type: ${left.type}`)
+    }
+    const res =
+      nodeIterator.nodeHandler.AssignmentExpressionOperatortraverseMap[
+        operator
+      ](leftV, nodeIterator.interpret(right, scope));
+    console.log('AssignmentExpression res: ', res)
+    return res
   },
   FunctionDeclaration() {},
   FunctionExpression() {},
@@ -161,7 +213,6 @@ const es5 = {
   UnaryExpression() {},
 
   UpdateExpression() {},
-  
 
   LogicalExpression() {},
   ConditionalExpression() {},

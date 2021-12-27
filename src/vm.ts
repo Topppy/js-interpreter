@@ -3,6 +3,7 @@
 const acorn = require("acorn");
 import Interpreter from "./interpreter";
 import { Scope } from "./scope";
+import { PropVar } from "./variable";
 
 export function run(code: string) {
   const ast = acorn.parse(code, {
@@ -14,12 +15,16 @@ export function run(code: string) {
   // 定义module.exports
   const $exports = {};
   const $module = { exports: $exports };
+  // const $module = new PropVar({}, 'exports')
+  // $module.$set($exports )
   globalScope.$const("module", $module);
-  globalScope.$var("exports", $exports);
+  // globalScope.$var("exports", $exports);
   const jsInterpreter = new Interpreter(null, globalScope);
   jsInterpreter.interpret(ast);
   // exports
-  const moduleVar = globalScope.$find('module')
-  console.log('moduleVar:', moduleVar)
-  return moduleVar ? moduleVar.$get().exports : null
+  const moduleVar = globalScope.$find("module");
+  console.log("moduleVar:", moduleVar);
+  const exportVal = moduleVar ? moduleVar.$get().exports : null;
+  console.log("module exports:", exportVal);
+  return exportVal;
 }
