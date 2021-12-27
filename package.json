@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --silent",
+    "test:dev": "jest test/index.test.js jest",
     "dev": "rollup -c rollup.config.js --watch",
     "build": "rollup -c rollup.config.js"
   },

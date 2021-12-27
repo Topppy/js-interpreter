@@ -7,7 +7,7 @@ type OpMap = {
 };
 
 type AssignmentExpressionOperatortraverseMapType = {
-  [op in ESTree.AssignmentOperator]: (leftV: Var | PropVar, v: any) => any;
+  [op in ESTree.AssignmentOperator]: ($var: Var | PropVar, v: any) => any;
 };
 // 节点处理器, 节点属性参考 https://astexplorer.net/
 const es5 = {
@@ -38,9 +38,9 @@ const es5 = {
       const value = init ? nodeIterator.interpret(init) : undefined;
       // 根据不同的kind(var/const/let)声明进行定义,即var age = 18
       // 在作用域当中定义变量
-      // 如果当前是块级作用域且变量用var定义，则定义到父级作用域
-      if (scope.type === "block" && kind === "var") {
-        scope.parent?.$declare(kind, key, value);
+      // 如果当前是块级作用域且变量用var定义且父作用域存在(不是最顶层作用域)，则定义到父级作用域
+      if (scope.type === "block" && kind === "var" && scope.parent) {
+        scope.parent.$declare(kind, key, value);
       } else {
         scope.$declare(kind, key, value);
       }
@@ -52,7 +52,7 @@ const es5 = {
     console.log("es5:ExpressionStatement", node);
     return nodeIterator.interpret(node.expression);
   },
-  // 二元运算表达式节点处理
+  // 二元运算表达式节点处理， https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Expressions_and_Operators
   // 对left/node两个节点(Literal)进行求值,然后实现operator类型运算,返回结果。
   BinaryExpression(nodeIterator: Interpreter<ESTree.BinaryExpression>) {
     const { node } = nodeIterator;
@@ -60,30 +60,28 @@ const es5 = {
     const leftNode = nodeIterator.interpret(node.left);
     const rightNode = nodeIterator.interpret(node.right);
     const opMap: OpMap = {
-      // todo
-      "==": (a: any, b: any) => a + b,
-      "!=": (a: any, b: any) => a + b,
-      "===": (a: any, b: any) => a + b,
-      "!==": (a: any, b: any) => a + b,
-      "<": (a: any, b: any) => a + b,
-      "<=": (a: any, b: any) => a + b,
-      ">": (a: any, b: any) => a + b,
-      ">=": (a: any, b: any) => a + b,
-      "<<": (a: any, b: any) => a + b,
-      ">>": (a: any, b: any) => a + b,
-      ">>>": (a: any, b: any) => a + b,
-      // done
+      "==": (a: any, b: any) => a == b,
+      "!=": (a: any, b: any) => a != b,
+      "===": (a: any, b: any) => a === b,
+      "!==": (a: any, b: any) => a !== b,
+      "<": (a: any, b: any) => a < b,
+      "<=": (a: any, b: any) => a <= b,
+      ">": (a: any, b: any) => a > b,
+      ">=": (a: any, b: any) => a >= b,
+      "<<": (a: any, b: any) => a << b,
+      ">>": (a: any, b: any) => a >> b,
+      ">>>": (a: any, b: any) => a >>> b, // https://juejin.cn/post/6844903969915944973
       "+": (a: any, b: any) => a + b,
-      "-": (a: any, b: any) => a + b,
-      "*": (a: any, b: any) => a + b,
-      "/": (a: any, b: any) => a + b,
-      "%": (a: any, b: any) => a + b,
-      "**": (a: any, b: any) => a + b,
-      "|": (a: any, b: any) => a + b,
-      "^": (a: any, b: any) => a + b,
-      "&": (a: any, b: any) => a + b,
-      in: (a: any, b: any) => a + b,
-      instanceof: (a: any, b: any) => a + b,
+      "-": (a: any, b: any) => a - b,
+      "*": (a: any, b: any) => a * b,
+      "/": (a: any, b: any) => a / b,
+      "%": (a: any, b: any) => a % b,
+      "**": (a: any, b: any) => a ** b,
+      "|": (a: any, b: any) => a | b,
+      "^": (a: any, b: any) => a ^ b,
+      "&": (a: any, b: any) => a & b,
+      in: (a: any, b: any) => a in b,
+      instanceof: (a: any, b: any) => a instanceof b,
     };
     return opMap[node.operator](leftNode, rightNode);
   },
@@ -128,36 +126,36 @@ const es5 = {
     console.log("es5:Identifier", node, variable, variable.$get());
     return variable.$get();
   },
+  // 赋值运算符， https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Expressions_and_Operators#%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6
   AssignmentExpressionOperatortraverseMap: {
-    "=": (leftV, v) => (leftV.$set(v), v),
-    // todo
-    "+=": (leftV, v) => {},
-    "-=": (leftV, v) => {},
-    "*=": (leftV, v) => {},
-    "/=": (leftV, v) => {},
-    "%=": (leftV, v) => {},
-    "**=": (leftV, v) => {},
-    "<<=": (leftV, v) => {},
-    ">>=": (leftV, v) => {},
-    ">>>=": (leftV, v) => {},
-    "|=": (leftV, v) => {},
-    "^=": (leftV, v) => {},
-    "&=": (leftV, v) => {},
+    "=": ($var, v) => ($var.$set(v), v),
+    "+=": ($var, v) => ($var.$set(v + $var.$get()),$var.$get()),
+    "-=": ($var, v) => ($var.$set(v - $var.$get()),$var.$get()),
+    "*=": ($var, v) => ($var.$set(v * $var.$get()),$var.$get()),
+    "/=": ($var, v) => ($var.$set(v / $var.$get()),$var.$get()),
+    "%=": ($var, v) => ($var.$set(v % $var.$get()),$var.$get()),
+    "**=": ($var, v) => ($var.$set(v ** $var.$get()),$var.$get()),
+    "<<=": ($var, v) => ($var.$set(v << $var.$get()),$var.$get()),
+    ">>=": ($var, v) => ($var.$set(v >> $var.$get()),$var.$get()),
+    ">>>=": ($var, v) => ($var.$set(v >>> $var.$get()),$var.$get()),
+    "|=": ($var, v) => ($var.$set(v | $var.$get()),$var.$get()),
+    "^=": ($var, v) => ($var.$set(v ^ $var.$get()),$var.$get()),
+    "&=": ($var, v) => ($var.$set(v & $var.$get()),$var.$get()),
   } as AssignmentExpressionOperatortraverseMapType,
   // 赋值表达式
   AssignmentExpression(nodeIterator: Interpreter<ESTree.AssignmentExpression>) {
     const { node, scope } = nodeIterator;
     console.log("es5:AssignmentExpression", node);
     const { left, operator, right } = node;
-    // AssignmentExpression 有两种可能： Identifier (leftV, v) => {}
+    // AssignmentExpression 有两种可能： Identifier ($var, v) => {}
     // “讲得更准确一点，RHS查询与简单地查找某个变量的值别无二致，而LHS查询则是试图找到变量的容器本身，从而可以对其赋值。
     // “赋值操作的目标是谁（LHS）”以及“谁是赋值操作的源头（RHS）
     // ”https://segmentfault.com/a/1190000015618701
     // LHS
-    let leftV
+    let $var
     if (left.type === "Identifier") {
       // 标识符类型 直接查找
-      leftV = scope.$find(left.name);
+      $var = scope.$find(left.name);
     } else if (left.type == "MemberExpression") {
       // 成员表达式类型,处理方式跟上面差不多,不同的是这边需要自定义一个变量对象的实现
       const { object, property, computed } = left;
@@ -165,15 +163,15 @@ const es5 = {
       const prop = computed
         ? nodeIterator.interpret(property, scope)
         : (<ESTree.Identifier>property).name;
-      leftV = new PropVar(obj, prop);
-      console.log('es5:AssignmentExpression MemberExpression', leftV, obj, prop)
+      $var = new PropVar(obj, prop);
+      console.log('es5:AssignmentExpression MemberExpression', $var, obj, prop)
     } else {
       throw Error(`AssignmentExpression error unknown left type: ${left.type}`)
     }
     const res =
       nodeIterator.nodeHandler.AssignmentExpressionOperatortraverseMap[
         operator
-      ](leftV, nodeIterator.interpret(right, scope));
+      ]($var, nodeIterator.interpret(right, scope));
     console.log('AssignmentExpression res: ', res)
     return res
   },
@@ -212,6 +210,7 @@ const es5 = {
   YieldExpression() {},
   UnaryExpression() {},
 
+  // update 运算表达式节点（for循环）
   UpdateExpression() {},
 
   LogicalExpression() {},

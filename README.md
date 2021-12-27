@@ -13,3 +13,4 @@
 - AST类型表：https://juejin.cn/post/6844903798347939853
 - https://www.lhsz.xyz/read/llvm-guide-zh/Chapter02-README.md
 - https://segmentfault.com/a/1190000015618701
+- [jest 过滤 console](https://stackoverflow.com/questions/44467657/jest-better-way-to-disable-console-inside-unit-tests)
