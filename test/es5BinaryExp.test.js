@@ -1,6 +1,6 @@
 import { run } from "../src/vm";
 
-describe("ji es5 BinaryExpressionign", () => {
+describe("es5 BinaryExpressionign", () => {
   /**
    * 二元运算符
    */

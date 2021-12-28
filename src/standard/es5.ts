@@ -1,6 +1,7 @@
 import * as ESTree from "estree";
 import Interpreter from "../interpreter";
 import { Scope } from "../scope";
+import Signal, { SignalType } from "../signal";
 import { PropVar, Var } from "../variable";
 
 type OpMap = {
@@ -199,25 +200,39 @@ const es5 = {
   SwitchCase() {},
   CatchClause() {},
   VariableDeclarator() {},
-  // 块级作用域
+  // 块级作用域，场景：for循环
   BlockStatement(nodeIterator: Interpreter<ESTree.BlockStatement>) {
-    const { node } = nodeIterator
+    const { node } = nodeIterator;
     // 创建块级作用域， 带上父级作用域
     const blockScope = new Scope("block", nodeIterator.scope);
     console.log("es5:BlockStatement:body", node);
-    node.body.map((bodyNode) => {
-      return nodeIterator.interpret(bodyNode, blockScope);
-    });
+    // 提取关键字（return, break, continue），有任何一种中断，直接return
+    for (let i = 0; i < node.body.length; i++) {
+      const signal = nodeIterator.interpret(node.body[i], blockScope);
+      if (Signal.isSignal(signal)) {
+        return signal;
+      }
+    }
   },
   EmptyStatement() {},
 
   DebuggerStatement() {},
   WithStatement() {},
-  ReturnStatement() {},
   LabeledStatement() {},
+  ReturnStatement(nodeIterator: Interpreter<ESTree.BreakStatement>) {
+    console.log("es5:ReturnStatement");
+    return new Signal(SignalType.return);
+  },
 
-  BreakStatement() {},
-  ContinueStatement() {},
+  // 循环中断
+  BreakStatement(nodeIterator: Interpreter<ESTree.BreakStatement>) {
+    console.log("es5:BreakStatement");
+    return new Signal(SignalType.break);
+  },
+  ContinueStatement(nodeIterator: Interpreter<ESTree.ContinueStatement>) {
+    console.log("es5:ContinueStatement");
+    return new Signal(SignalType.continue);
+  },
   IfStatement() {},
   SwitchStatement() {},
 
@@ -227,8 +242,8 @@ const es5 = {
   DoWhileStatement() {},
   // for 循环语句节点
   ForStatement(nodeIterator: Interpreter<ESTree.ForStatement>) {
-    const { node } = nodeIterator
-    const { init,test, update, body } = node
+    const { node } = nodeIterator;
+    const { init, test, update, body } = node;
     // 这里需要注意的是需要模拟创建一个块级作用域
     // 前面Scope类实现,var声明在块作用域中会被提升,const/let不会
     const forScope = new Scope("block", nodeIterator.scope);
@@ -242,8 +257,11 @@ const es5 = {
       // 变量更新语句(UpdateExpression)
       update ? nodeIterator.interpret(update, forScope) : null
     ) {
-      // BlockStatement
-      nodeIterator.interpret(body, forScope);
+      // BlockStatement, 处理BlockStatement可能返回的3种中断
+      const signal = nodeIterator.interpret(body, forScope);
+      if (Signal.isBreak(signal)) break;
+      if (Signal.isContinue(signal)) continue;
+      if (Signal.isReturn(signal)) return signal;
     }
   },
   ForInStatement() {},
