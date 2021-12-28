@@ -202,8 +202,8 @@ const es5 = {
   // 块级作用域
   BlockStatement(nodeIterator: Interpreter<ESTree.BlockStatement>) {
     const { node } = nodeIterator
-    // 创建块级作用域
-    const blockScope = new Scope("block");
+    // 创建块级作用域， 带上父级作用域
+    const blockScope = new Scope("block", nodeIterator.scope);
     console.log("es5:BlockStatement:body", node);
     node.body.map((bodyNode) => {
       return nodeIterator.interpret(bodyNode, blockScope);
@@ -228,6 +228,23 @@ const es5 = {
   // for 循环语句节点
   ForStatement(nodeIterator: Interpreter<ESTree.ForStatement>) {
     const { node } = nodeIterator
+    const { init,test, update, body } = node
+    // 这里需要注意的是需要模拟创建一个块级作用域
+    // 前面Scope类实现,var声明在块作用域中会被提升,const/let不会
+    const forScope = new Scope("block", nodeIterator.scope);
+    for (
+      // 初始化值
+      // VariableDeclaration
+      init ? nodeIterator.interpret(init, forScope) : null;
+      // 循环判断条件(BinaryExpression)
+      // 二元运算表达式
+      test ? nodeIterator.interpret(test, forScope) : true;
+      // 变量更新语句(UpdateExpression)
+      update ? nodeIterator.interpret(update, forScope) : null
+    ) {
+      // BlockStatement
+      nodeIterator.interpret(body, forScope);
+    }
   },
   ForInStatement() {},
   ForOfStatement() {},

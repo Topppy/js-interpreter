@@ -17,13 +17,13 @@ describe("ji es5 VariableDeclaration", () => {
   //   ).toBe(7);
   // });
   // for 循环
-  // test("for loop", () => {
-  //   expect(
-  //     run(`var result = 0;
-  //     for (var i = 0; i < 5; i++) {
-  //       result += 2;
-  //     }
-  //     module.exports = result;`)
-  //   ).toBe(6);
-  // });
+  test("for loop", () => {
+    expect(
+      run(`var result = 0;
+      for (var i = 0; i < 5; i++) {
+        result += 2;
+      }
+      module.exports = result;`)
+    ).toBe(10);
+  });
 });
