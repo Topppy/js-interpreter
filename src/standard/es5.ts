@@ -203,9 +203,9 @@ const es5 = {
   // 块级作用域，场景：for循环
   BlockStatement(nodeIterator: Interpreter<ESTree.BlockStatement>) {
     const { node } = nodeIterator;
+    console.log("es5:BlockStatement:body", node);
     // 创建块级作用域， 带上父级作用域
     const blockScope = new Scope("block", nodeIterator.scope);
-    console.log("es5:BlockStatement:body", node);
     // 提取关键字（return, break, continue），有任何一种中断，直接return
     for (let i = 0; i < node.body.length; i++) {
       const signal = nodeIterator.interpret(node.body[i], blockScope);
@@ -223,7 +223,6 @@ const es5 = {
     console.log("es5:ReturnStatement");
     return new Signal(SignalType.return);
   },
-
   // 循环中断
   BreakStatement(nodeIterator: Interpreter<ESTree.BreakStatement>) {
     console.log("es5:BreakStatement");
@@ -233,7 +232,21 @@ const es5 = {
     console.log("es5:ContinueStatement");
     return new Signal(SignalType.continue);
   },
-  IfStatement() {},
+  // 条件判断语句
+  IfStatement(nodeIterator: Interpreter<ESTree.IfStatement>) {
+    const { node } = nodeIterator;
+    console.log("es5:IfStatement", node);
+    // test 为条件表达式， 返回true执行consequent， false执行alternate
+    const { test, consequent, alternate } = node;
+    if (nodeIterator.interpret(test)) {
+      return nodeIterator.interpret(consequent);
+    } else if (alternate) {
+      // alternate可以不存在，即无else从句
+      // alternate可以是 IfStatement，即 else if从句
+      return nodeIterator.interpret(alternate);
+    }
+  },
+  // switch 语句
   SwitchStatement() {},
 
   ThrowStatement() {},
@@ -243,6 +256,7 @@ const es5 = {
   // for 循环语句节点
   ForStatement(nodeIterator: Interpreter<ESTree.ForStatement>) {
     const { node } = nodeIterator;
+    console.log("es5:ForStatement", node);
     const { init, test, update, body } = node;
     // 这里需要注意的是需要模拟创建一个块级作用域
     // 前面Scope类实现,var声明在块作用域中会被提升,const/let不会

@@ -16,5 +16,17 @@ describe("ji es5 VariableDeclaration", () => {
   //   ).toBe(7);
   // });
   // 条件表达式
+  test("for loop", () => {
+    expect(
+      run(`var result = 0;
+      for (var i = 0; i < 5; i++) {
+        if (result > 5) {
+          continue;
+        }
+        result += 2;
+      }
+      module.exports = result;`)
+    ).toBe(6);
+  });
   // 函数声明
 });
