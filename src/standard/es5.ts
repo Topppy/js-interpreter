@@ -1,8 +1,9 @@
 import * as ESTree from "estree";
 import Interpreter from "../interpreter";
-import { Scope } from "../scope";
+import Scope, { ScopeType } from "../scope";
 import Signal, { SignalType } from "../signal";
 import { PropVar, Var } from "../variable";
+import { defineFunctionName, defineFunctionLength } from "../utils";
 
 type OpMap = {
   [op in ESTree.BinaryOperator]: (a: any, b: any) => void;
@@ -146,7 +147,24 @@ const es5 = {
     const obj = nodeIterator.interpret(object);
     return obj[prop];
   },
-  CallExpression() {},
+  // 函数/方法调用
+  CallExpression(nodeIterator: Interpreter<ESTree.CallExpression>) {
+    const { node } = nodeIterator;
+    console.log("es5:CallExpression", node);
+    // 函数解析
+    const func = nodeIterator.interpret(node.callee)
+    // 参数
+    const args = node.arguments.map(arg => nodeIterator.interpret(arg))
+
+    // 如果是成员方法调用
+    let value
+    if (node.callee.type === 'MemberExpression') {
+      value = nodeIterator.interpret(node.callee.object)
+    }
+    // 指定调用对象this， https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
+    return func.apply(value, args)
+
+  },
   // 标识符节点
   Identifier(nodeIterator: Interpreter<ESTree.Identifier>) {
     // 标识符节点,我们只要通过访问作用域,访问该值即可。
@@ -194,8 +212,50 @@ const es5 = {
     console.log("AssignmentExpression res: ", res);
     return res;
   },
-  FunctionDeclaration() {},
-  FunctionExpression() {},
+  // 函数声明
+  FunctionDeclaration(nodeIterator: Interpreter<ESTree.FunctionDeclaration>) {
+    const { node } = nodeIterator;
+    console.log("es5:FunctionDeclaration", node);
+    const func = nodeIterator.nodeHandler.FunctionExpression(nodeIterator);
+    nodeIterator.scope.$var(node.id?.name  || '', func);
+    // todo 是否需要
+    return func
+  },
+  // 函数表达式
+  FunctionExpression(
+    nodeIterator: Interpreter<
+      ESTree.FunctionExpression | ESTree.FunctionDeclaration
+    >
+  ) {
+    const { node } = nodeIterator;
+    console.log("es5:FunctionExpression", node);
+    /**
+     * 1、定义函数需要先为其定义一个函数作用域，且允许继承父级作用域
+     * 2、注册`this`, `arguments`和形参到作用域的变量空间
+     * 3、检查return关键字
+     * 4、定义函数名和长度
+     */
+    const func = function (this: any, ...args: any[]) {
+      const scope = new Scope(ScopeType.function, nodeIterator.scope);
+      scope.$const("this", this);
+      scope.$const("arguments", args);
+      node.params.forEach((param, idx) => {
+        const { name } = <ESTree.Identifier>param;
+        scope.$const(name, args[idx]);
+      });
+      // 执行函数body
+      const signal = nodeIterator.interpret(node.body, scope);
+      // 如果有函数返回中断，返回中断的值
+      if (Signal.isReturn(signal)) {
+        return signal.val;
+      }
+    };
+    // 定义函数名和长度
+    defineFunctionName(func,  node.id?.name || '')
+    defineFunctionLength(func, node.params.length )
+
+    return func
+  },
   ArrowFunctionExpression() {},
   SwitchCase() {},
   CatchClause() {},
@@ -205,7 +265,7 @@ const es5 = {
     const { node } = nodeIterator;
     console.log("es5:BlockStatement:body", node);
     // 创建块级作用域， 带上父级作用域
-    const blockScope = new Scope("block", nodeIterator.scope);
+    const blockScope = new Scope(ScopeType.block, nodeIterator.scope);
     // 提取关键字（return, break, continue），有任何一种中断，直接return
     for (let i = 0; i < node.body.length; i++) {
       const signal = nodeIterator.interpret(node.body[i], blockScope);
@@ -260,7 +320,7 @@ const es5 = {
     const { init, test, update, body } = node;
     // 这里需要注意的是需要模拟创建一个块级作用域
     // 前面Scope类实现,var声明在块作用域中会被提升,const/let不会
-    const forScope = new Scope("block", nodeIterator.scope);
+    const forScope = new Scope(ScopeType.block, nodeIterator.scope);
     for (
       // 初始化值
       // VariableDeclaration

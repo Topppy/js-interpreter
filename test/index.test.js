@@ -15,18 +15,19 @@ describe("ji es5 VariableDeclaration", () => {
   //     run(`var age = 2; let bob = { age: 5 }; module.exports = age + bob.age`)
   //   ).toBe(7);
   // });
-  // 条件表达式
-  test("for loop", () => {
+  // 函数声明
+  // for 循环 return
+  test("for loop: return", () => {
     expect(
       run(`var result = 0;
-      for (var i = 0; i < 5; i++) {
-        if (result > 5) {
-          continue;
+      function a() {
+        for (var i = 0; i < 5; i++) {
+          result += 2;
+          return;
         }
-        result += 2;
       }
+      a();
       module.exports = result;`)
-    ).toBe(6);
+    ).toBe(2);
   });
-  // 函数声明
 });

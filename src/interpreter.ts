@@ -1,6 +1,6 @@
 // AST遍历器
 import * as ESTree from "estree";
-import { Scope, ScopeType } from "./scope";
+import Scope from "./scope";
 import es5 from "./standard/es5";
 
 const VISITOR = {
@@ -26,7 +26,7 @@ class Interpreter<T extends ESTree.Node | null> {
     if (!_eval) {
       throw new Error(`canjs: Unknown node type "${node.type}".`);
     }
-    // @ts-ignore
+    // @ts-ignore    
     return _eval(nodeIterator);
   }
 }

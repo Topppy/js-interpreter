@@ -2,7 +2,7 @@ import { run } from "../src/vm";
 
 describe("es5 loop", () => {
   // for 循环
-  test("for loop", () => {
+  test("for loop: basic", () => {
     expect(
       run(`var result = 0;
       for (var i = 0; i < 5; i++) {
@@ -13,7 +13,7 @@ describe("es5 loop", () => {
   });
 
   // for 循环 break
-  test("for loop", () => {
+  test("for loop: break", () => {
     expect(
       run(`var result = 0;
       for (var i = 0; i < 5; i++) {
@@ -25,7 +25,7 @@ describe("es5 loop", () => {
   });
 
   // for 循环 continue
-  test("for loop", () => {
+  test("for loop: continue", () => {
     expect(
       run(`var result = 0;
       for (var i = 0; i < 5; i++) {
@@ -38,7 +38,7 @@ describe("es5 loop", () => {
     ).toBe(6);
   });
   // for 循环 return
-  test("for loop", () => {
+  test("for loop: return", () => {
     expect(
       run(`var result = 0;
       function a() {

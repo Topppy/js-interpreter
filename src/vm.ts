@@ -2,7 +2,7 @@
 
 const acorn = require("acorn");
 import Interpreter from "./interpreter";
-import { Scope } from "./scope";
+import Scope, { ScopeType } from "./scope";
 import { PropVar } from "./variable";
 
 export function run(code: string) {
@@ -11,14 +11,12 @@ export function run(code: string) {
     sourceType: "script",
   });
   // 创建全局作用域
-  const globalScope = new Scope("block");
+  const globalScope = new Scope(ScopeType.block);
   // 定义module.exports
   const $exports = {};
   const $module = { exports: $exports };
   // const $module = new PropVar({}, 'exports')
-  // $module.$set($exports )
   globalScope.$const("module", $module);
-  // globalScope.$var("exports", $exports);
   const jsInterpreter = new Interpreter(null, globalScope);
   jsInterpreter.interpret(ast);
   // exports
