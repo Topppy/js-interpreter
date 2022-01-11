@@ -20,7 +20,7 @@ type AssignmentExpressionOperatortraverseMapType = {
  * @returns
  */
 function getIdentifierOrMemberExpressionValue(
-  node: ESTree.Pattern | ESTree.Expression,
+  node: ESTree.Pattern | ESTree.Expression | ESTree.PrivateIdentifier,
   nodeIterator: Interpreter<ESTree.Expression>
 ) {
   let $var;
@@ -53,9 +53,6 @@ const es5 = {
       console.log("es5:Program:body", bodyNode);
       return nodeIterator.interpret(bodyNode);
     });
-    // todo 如何返回多个值
-    // console.log("es5:Program:res", res);
-    // return res[0];
   },
   // 变量声明
   VariableDeclaration(nodeIterator: Interpreter<ESTree.VariableDeclaration>) {
@@ -151,19 +148,18 @@ const es5 = {
   CallExpression(nodeIterator: Interpreter<ESTree.CallExpression>) {
     const { node } = nodeIterator;
     console.log("es5:CallExpression", node);
-    // 函数解析
-    const func = nodeIterator.interpret(node.callee)
-    // 参数
-    const args = node.arguments.map(arg => nodeIterator.interpret(arg))
+    // 函数解析，callee指向一个Identifier
+    const func = nodeIterator.interpret(node.callee);
+    // 参数解析
+    const args = node.arguments.map((arg) => nodeIterator.interpret(arg));
 
-    // 如果是成员方法调用
-    let value
-    if (node.callee.type === 'MemberExpression') {
-      value = nodeIterator.interpret(node.callee.object)
+    // 如果是成员方法调用, callee.object为调用对象Indentifier
+    let value;
+    if (node.callee.type === "MemberExpression") {
+      value = nodeIterator.interpret(node.callee.object);
     }
-    // 指定调用对象this， https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
-    return func.apply(value, args)
-
+    // 调用函数的this指向成员， https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/apply
+    return func.apply(value, args);
   },
   // 标识符节点
   Identifier(nodeIterator: Interpreter<ESTree.Identifier>) {
@@ -217,14 +213,14 @@ const es5 = {
     const { node } = nodeIterator;
     console.log("es5:FunctionDeclaration", node);
     const func = nodeIterator.nodeHandler.FunctionExpression(nodeIterator);
-    nodeIterator.scope.$var(node.id?.name  || '', func);
+    nodeIterator.scope.$var(node.id?.name || "", func);
     // todo 是否需要
-    return func
+    return func;
   },
   // 函数表达式
   FunctionExpression(
     nodeIterator: Interpreter<
-      ESTree.FunctionExpression | ESTree.FunctionDeclaration
+      ESTree.FunctionDeclaration | ESTree.FunctionExpression
     >
   ) {
     const { node } = nodeIterator;
@@ -251,14 +247,16 @@ const es5 = {
       }
     };
     // 定义函数名和长度
-    defineFunctionName(func,  node.id?.name || '')
-    defineFunctionLength(func, node.params.length )
+    defineFunctionName(func, node?.id?.name || "");
+    defineFunctionLength(func, node.params.length);
 
-    return func
+    return func;
   },
+  // 箭头函数表达式,this的指向问题, es2015
   ArrowFunctionExpression() {},
   SwitchCase() {},
   CatchClause() {},
+  // 变量声明
   VariableDeclarator() {},
   // 块级作用域，场景：for循环
   BlockStatement(nodeIterator: Interpreter<ESTree.BlockStatement>) {
@@ -344,8 +342,32 @@ const es5 = {
   ClassDeclaration() {},
   ThisExpression() {},
   ArrayExpression() {},
-  // todo
-  ObjectExpression() {},
+  // 对象表达式，es5的对象表达式只支持2种：Identifier 和 Literal，Expression是在es2015后支持的
+  ObjectExpression(nodeIterator: Interpreter<ESTree.ObjectExpression>) {
+    const { node } = nodeIterator;
+    console.log("es5:ObjectExpression", node);
+    let obj = {};
+    node.properties.forEach((prop) => {
+      const { key, value } = <ESTree.Property>prop;
+      // 属性名, 可以是Identifier 或 Literal
+      let keyName;
+      // 标识符
+      if (key.type === "Identifier") {
+        keyName = key.name;
+      // 字面量
+      } else if (key.type === "Literal") {
+        keyName = nodeIterator.interpret(key).$get();
+      } else {
+        throw new Error(`canjs: [ObjectExpression] Unsupported property key type "${key.type}"`)
+      }
+      // 属性值
+      const res = nodeIterator.interpret(value);
+      // todo
+      // @ts-ignore
+      obj[keyName] = res;
+    });
+    return obj;
+  },
   YieldExpression() {},
   UnaryExpression() {},
 
