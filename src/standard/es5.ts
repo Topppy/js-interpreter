@@ -252,12 +252,6 @@ const es5 = {
 
     return func;
   },
-  // 箭头函数表达式,this的指向问题, es2015
-  ArrowFunctionExpression() {},
-  SwitchCase() {},
-  CatchClause() {},
-  // 变量声明
-  VariableDeclarator() {},
   // 块级作用域，场景：for循环
   BlockStatement(nodeIterator: Interpreter<ESTree.BlockStatement>) {
     const { node } = nodeIterator;
@@ -272,14 +266,23 @@ const es5 = {
       }
     }
   },
+  CatchClause() {},
+  // 箭头函数表达式,this的指向问题, es2015
+  ArrowFunctionExpression() {},
+  // 变量声明
+  VariableDeclarator() {},
+
   EmptyStatement() {},
 
   DebuggerStatement() {},
   WithStatement() {},
   LabeledStatement() {},
-  ReturnStatement(nodeIterator: Interpreter<ESTree.BreakStatement>) {
-    console.log("es5:ReturnStatement");
-    return new Signal(SignalType.return);
+  ReturnStatement(nodeIterator: Interpreter<ESTree.ReturnStatement>) {
+    const { node } = nodeIterator
+    console.log("es5:ReturnStatement", node);
+    // 返回值在arguments字段中，没有返回值的话，argument为null
+    const val = node.argument ? nodeIterator.interpret(node.argument) : undefined
+    return new Signal(SignalType.return, val);
   },
   // 循环中断
   BreakStatement(nodeIterator: Interpreter<ESTree.BreakStatement>) {
@@ -304,8 +307,57 @@ const es5 = {
       return nodeIterator.interpret(alternate);
     }
   },
+  // switch-case的每个case节点
+  SwitchCase(nodeIterator: Interpreter<ESTree.SwitchCase>) {
+    const { node } = nodeIterator;
+    console.log("es5: SwitchCase", node);
+    // consequent 是要执行的语句， test是满足条件， defaultCase的时候test为空
+    const { consequent } = node;
+    // 遍历执行每一条语句
+    for (let consq of consequent) {
+      const re = nodeIterator.interpret(consq);
+      // 如果语句执行结果是一个signal的话，提前中断
+      if (Signal.isSignal(re)) {
+        return re;
+      }
+    }
+  },
   // switch 语句
-  SwitchStatement() {},
+  SwitchStatement(nodeIterator: Interpreter<ESTree.SwitchStatement>) {
+    const { node } = nodeIterator;
+    console.log("es5: SwitchStatement", node);
+    const { discriminant, cases } = node;
+    // switch有自己的作用域
+    // const scope = new Scope(ScopeType.block, nodeIterator.scope);
+    // 用来判断的表达式的值
+    const exp = nodeIterator.interpret(discriminant);
+    for (const theCase of cases) {
+      // 判断是否满足条件
+      let matched = false;
+      // test是判断条件， defaultCase的时候test为空
+      if (theCase.test === undefined || theCase.test === null) {
+        matched = true;
+      } else if (
+        nodeIterator.interpret(<ESTree.Expression>theCase.test) === exp
+      ) {
+        matched = true;
+      }
+      // 如果满足则执行语句
+      let res;
+      if (matched) {
+        res = nodeIterator.interpret(theCase);
+        console.log('es5: SwitchStatement matched res', res)
+      }
+      // 判断执行结果是否为中断信号： break、return
+      if (Signal.isBreak(res)) {
+        break;
+      } else if (Signal.isContinue(res)) {
+        continue;
+      } else if (Signal.isReturn(res)) {
+        return res;
+      }
+    }
+  },
 
   ThrowStatement() {},
   TryStatement() {},
@@ -354,11 +406,13 @@ const es5 = {
       // 标识符
       if (key.type === "Identifier") {
         keyName = key.name;
-      // 字面量
+        // 字面量
       } else if (key.type === "Literal") {
         keyName = nodeIterator.interpret(key).$get();
       } else {
-        throw new Error(`canjs: [ObjectExpression] Unsupported property key type "${key.type}"`)
+        throw new Error(
+          `canjs: [ObjectExpression] Unsupported property key type "${key.type}"`
+        );
       }
       // 属性值
       const res = nodeIterator.interpret(value);
