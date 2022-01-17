@@ -1,4 +1,5 @@
 import { Var, ScopeVar, Kind } from "./variable";
+import defaultContext from "./context";
 
 // 作用域类型
 export enum ScopeType {
@@ -24,11 +25,26 @@ export default class Scope {
    *  当前作用域
    */
   private content: { [key: string]: Var };
+  /**
+   * 作用域环境声明变量/方法
+   */
+  private context: { [key: string]: Var };
 
   constructor(type: ScopeType, parent?: Scope) {
     this.type = type;
     this.parent = parent || null;
     this.content = {};
+    this.context = defaultContext;
+  }
+
+  addContext(context: { [x: string]: any } | null) {
+    if (!context) return;
+    Object.keys(context).forEach((k) => {
+      this.addDeclaration(k, context[k]);
+    });
+  }
+  addDeclaration(name: string, value: any) {
+    this.context[name] = new ScopeVar("var", value);
   }
   // let类型变量定义
   $let(rawName: string, value: any) {
@@ -64,6 +80,9 @@ export default class Scope {
       return this.content[rawName];
     } else if (this.parent) {
       return this.parent.$find(rawName);
+    } else if (this.context[rawName]) {
+      console.log(rawName,'===this.context[rawName]====')
+      return this.context[rawName];
     } else {
       throw Error(`Uncaught ReferenceError: ${rawName} is not defined`);
     }

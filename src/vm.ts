@@ -5,13 +5,21 @@ import Interpreter from "./interpreter";
 import Scope, { ScopeType } from "./scope";
 import { PropVar } from "./variable";
 
-export function run(code: string) {
+/**
+ * 
+ * @param code string 代码
+ * @param context 预置运行环境
+ * @returns 
+ */
+export function run(code: string, context = null) {
   const ast = acorn.parse(code, {
     ecmaVersion: 8,
     sourceType: "script",
   });
   // 创建全局作用域
   const globalScope = new Scope(ScopeType.block);
+  // 注册全局变量/方法
+  globalScope.addContext(context)
   // 定义module.exports
   const $exports = {};
   const $module = { exports: $exports };

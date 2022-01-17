@@ -15,26 +15,8 @@ describe("ji es5 VariableDeclaration", () => {
   //   ).toBe(2);
   // });
 
-  test("ArrowFunctionExpression", () => {
-    expect(
-      run(`var result = 0;
-      function aa (a) {
-        var re = 0
-        switch (a) {
-          case 1: 
-              re = 100
-              break;
-          case 2: {
-              re = 200
-          }
-          default:
-            re = 10
-            break;
-        }
-        return re
-      }
-    result = aa(1)
-    module.exports = result;`)
-    ).toBe(100);
+  test("native console", () => {
+    expect(() => run(`console.xx('hello world')`)).toThrow('console.xx is undefined');
+    expect(() => run(`console.log('hello world')`)).not.toThrow('console.log is undefined');
   });
 });

@@ -43,6 +43,17 @@ function getIdentifierOrMemberExpressionValue(
   }
   return $var;
 }
+
+function getFuncName(nodeIterator: Interpreter<ESTree.CallExpression>) {
+  const { node } =  nodeIterator
+  if (node.callee.type === "MemberExpression") {
+    // @ts-ignore
+    return node.callee.object.name + '.' + node.callee.property.name
+  } else {
+    // @ts-ignore
+    node.callee.name
+  }
+}
 // 节点处理器, 节点属性参考 https://astexplorer.net/
 const es5 = {
   // 根节点的处理很简单,我们只要对它的body属性进行遍历,然后访问该节点即可。
@@ -142,6 +153,7 @@ const es5 = {
       : (<ESTree.Identifier>property).name;
     // 解析出来对象
     const obj = nodeIterator.interpret(object);
+    console.log("es5:MemberExpression res:", prop, obj[prop]);
     return obj[prop];
   },
   // 函数/方法调用
@@ -150,6 +162,12 @@ const es5 = {
     console.log("es5:CallExpression", node);
     // 函数解析，callee指向一个Identifier
     const func = nodeIterator.interpret(node.callee);
+    const funcName = getFuncName(nodeIterator)
+    if (!func) {
+      throw Error(
+        `${funcName} is undefined`
+      );
+    }
     // 参数解析
     const args = node.arguments.map((arg) => nodeIterator.interpret(arg));
 
@@ -170,7 +188,7 @@ const es5 = {
     // 这个例子中查找的是age变量
     const variable = scope.$find(name);
     // 返回的是定义的变量对象(age)的值value,即18
-    console.log("es5:Identifier", node, variable, variable.$get());
+    console.log("es5:Identifier", variable.$get());
     return variable.$get();
   },
   // 赋值运算符， https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Expressions_and_Operators#%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6
@@ -277,11 +295,14 @@ const es5 = {
   DebuggerStatement() {},
   WithStatement() {},
   LabeledStatement() {},
+  // 返回
   ReturnStatement(nodeIterator: Interpreter<ESTree.ReturnStatement>) {
-    const { node } = nodeIterator
+    const { node } = nodeIterator;
     console.log("es5:ReturnStatement", node);
     // 返回值在arguments字段中，没有返回值的话，argument为null
-    const val = node.argument ? nodeIterator.interpret(node.argument) : undefined
+    const val = node.argument
+      ? nodeIterator.interpret(node.argument)
+      : undefined;
     return new Signal(SignalType.return, val);
   },
   // 循环中断
@@ -346,7 +367,7 @@ const es5 = {
       let res;
       if (matched) {
         res = nodeIterator.interpret(theCase);
-        console.log('es5: SwitchStatement matched res', res)
+        console.log("es5: SwitchStatement matched res", res);
       }
       // 判断执行结果是否为中断信号： break、return
       if (Signal.isBreak(res)) {
