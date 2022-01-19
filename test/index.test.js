@@ -1,10 +1,6 @@
 import { run } from "../src/vm";
 
 describe("ji es5 VariableDeclaration", () => {
-  test("dev test", () => {
-    expect(run('')).toBe(undefined);
-  });
-
   // test("ArrowFunctionExpression", () => {
   //   expect(
   //     run(`var result = 0;
@@ -18,5 +14,19 @@ describe("ji es5 VariableDeclaration", () => {
   //     module.exports = result;`)
   //   ).toBe(2);
   // });
-  // for block内声明的临时变量i
+
+  test("dev test", () => {
+    expect(run("")).toBe(undefined);
+  });
+
+  // forOf object
+  // test("forIn Identifier", () => {
+  //   expect(
+  //     run(`var a = {aa: 11, bb: 12, cc: 13};var result = 0;
+  //     for (const i in a) {
+  //       result += a[i]
+  //     }
+  //     module.exports = result;`)
+  //   ).toBe(36);
+  // });
 });

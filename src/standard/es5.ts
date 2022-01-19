@@ -186,7 +186,7 @@ const es5 = {
     // 这个例子中查找的是age变量
     const variable = scope.$find(name);
     // 返回的是定义的变量对象(age)的值value,即18
-    console.log("es5:Identifier", variable.$get());
+    console.log("es5:Identifier", name);
     return variable.$get();
   },
   // 赋值运算符， https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Expressions_and_Operators#%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6
@@ -417,22 +417,25 @@ const es5 = {
     const { left, right, body } = node;
     // 临时的块级作用域，left变量在该作用域中声明
     const forScope = new Scope(ScopeType.block, nodeIterator.scope);
-    // left 可以是 Identifier/VariableDeclaration
-    let $left;
-    if (left.type === "VariableDeclaration") {
-      const id = <ESTree.Identifier>left.declarations[0].id;
-      $left = forScope.$declare(left.kind, id.name, undefined);
-    } else if (left.type === "Identifier") {
-      $left = forScope.$find(left.name);
-    } else {
-      throw new Error(
-        `[ForInStatement] Unsupported left type "${left.type}"`
-      );
-    }
 
     for (const k in nodeIterator.interpret(right)) {
-      // 将k的值更新到left中
-      $left.$set(k);
+      // 临时的块级作用域，left变量在该作用域中声明
+      const forScope = new Scope(ScopeType.block, nodeIterator.scope);
+      // left 可以是 Identifier/VariableDeclaration
+      let $left;
+      if (left.type === "VariableDeclaration") {
+        const id = <ESTree.Identifier>left.declarations[0].id;
+        // const 需要创建就赋值
+        $left = forScope.$declare(left.kind, id.name, k);
+      } else if (left.type === "Identifier") {
+        // 将k的值更新到left中
+        $left = forScope.$find(left.name);
+        $left.$set(k);
+      } else {
+        throw new Error(
+          `[ForInStatement] Unsupported left type "${left.type}"`
+        );
+      }
       // 中断逻辑同ForStatement，执行body的时候需要能访问到left，所以使用forScope
       const signal = nodeIterator.interpret(body, forScope);
       if (Signal.isBreak(signal)) break;
@@ -444,7 +447,15 @@ const es5 = {
   Declaration() {},
   ClassDeclaration() {},
   ThisExpression() {},
-  ArrayExpression() {},
+  // 数组表达式
+  ArrayExpression(nodeIterator: Interpreter<ESTree.ArrayExpression>) {
+    const { node } = nodeIterator;
+    console.log('es5:ArrayExpression', node)
+    let arr = node.elements.map((el) =>
+      el ? nodeIterator.interpret(el) : el
+    );
+    return arr
+  },
   // 对象表达式，es5的对象表达式只支持2种：Identifier 和 Literal，Expression是在es2015后支持的
   ObjectExpression(nodeIterator: Interpreter<ESTree.ObjectExpression>) {
     const { node } = nodeIterator;

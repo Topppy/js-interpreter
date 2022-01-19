@@ -76,7 +76,7 @@ describe("es5 loop", () => {
   });
 
   // forIn block内声明的临时变量i
-  test("forIn", () => {
+  test("forIn let", () => {
     expect(
       run(`var a = 'qwerty';var result = ''
       for (let i in a) {
@@ -87,7 +87,7 @@ describe("es5 loop", () => {
     ).toBe("qwerty");
   });
   // forIn block外声明的变量i
-  test("forIn Identifier", () => {
+  test("forIn out var", () => {
     expect(
       run(`var a = 'qwerty';var result = ''; var i
       for (i in a) {
@@ -96,5 +96,26 @@ describe("es5 loop", () => {
       }
       module.exports = i;`)
     ).toBe("5");
+  });
+  // forIn 对象和内部声明的const i、
+  test("forIn Object & const", () => {
+    expect(
+      run(`var a = {aa: 11, bb: 12, cc: 13};var result = 0;
+      for (const i in a) {
+        console.log(a[i])
+        result += a[i]
+      }
+      module.exports = result;`)
+    ).toBe(36);
+  });
+  // forIn Array
+  test("forIn Array", () => {
+    expect(
+      run(`var a  = [10,9,8,7];var result = 0;
+      for (const i in a) {
+        result += a[i]
+      }
+      module.exports = result;`)
+    ).toBe(34);
   });
 });

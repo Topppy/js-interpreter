@@ -94,12 +94,12 @@ yarn test
 - [ ] WhileStatement
 - [ ] DoWhileStatement
 - [x] ForStatement
-- [ ] ForInStatement
+- [x] ForInStatement
 - [ ] ForOfStatement
 - [ ] Declaration
 - [ ] ClassDeclaration
 - [ ] ThisExpression
-- [ ] ArrayExpression
+- [x] ArrayExpression
 - [x] ObjectExpression
 - [ ] YieldExpression
 - [ ] UnaryExpression
