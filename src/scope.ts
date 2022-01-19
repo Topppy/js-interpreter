@@ -26,7 +26,7 @@ export default class Scope {
    */
   private content: { [key: string]: Var };
   /**
-   * 作用域环境声明变量/方法
+   * 作用域环境声明变量/方法: 包括内置对象/方法
    */
   private context: { [key: string]: Var };
 
