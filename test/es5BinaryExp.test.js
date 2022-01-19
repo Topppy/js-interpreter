@@ -22,6 +22,23 @@ describe("es5 BinaryExpressionign", () => {
   test("BinaryExpressionign: ** ", () => {
     expect(run(`module.exports= 3**2`)).toBe(9);
   });
+
+
+  test("BinaryExpressionign: *= ", () => {
+    expect(run(`var a =3; a*=4; module.exports= a`)).toBe(12);
+  });
+
+  test("BinaryExpressionign: += ", () => {
+    expect(run(`var a =3; a+=4; module.exports= a`)).toBe(7);
+  });
+
+  test("BinaryExpressionign: +=  string", () => {
+    expect(run(`var a = '1'; a+='2'; module.exports= a`)).toBe('12');
+  });
+
+  test("BinaryExpressionign: -= ", () => {
+    expect(run(`var a =3; a-=4; module.exports= a`)).toBe(-1);
+  });
   
   
   test("BinaryExpressionign: == ", () => {

@@ -11,6 +11,7 @@ import Scope, { ScopeType } from "./scope";
  * @returns 
  */
 export function run(code: string, context = null) {
+  if (!code) return
   const ast = acorn.parse(code, {
     ecmaVersion: 8,
     sourceType: "script",

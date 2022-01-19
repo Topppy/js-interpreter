@@ -45,13 +45,13 @@ function getIdentifierOrMemberExpressionValue(
 }
 
 function getFuncName(nodeIterator: Interpreter<ESTree.CallExpression>) {
-  const { node } =  nodeIterator
+  const { node } = nodeIterator;
   if (node.callee.type === "MemberExpression") {
     // @ts-ignore
-    return node.callee.object.name + '.' + node.callee.property.name
+    return node.callee.object.name + "." + node.callee.property.name;
   } else {
     // @ts-ignore
-    node.callee.name
+    node.callee.name;
   }
 }
 // 节点处理器, 节点属性参考 https://astexplorer.net/
@@ -162,11 +162,9 @@ const es5 = {
     console.log("es5:CallExpression", node);
     // 函数解析，callee指向一个Identifier
     const func = nodeIterator.interpret(node.callee);
-    const funcName = getFuncName(nodeIterator)
+    const funcName = getFuncName(nodeIterator);
     if (!func) {
-      throw Error(
-        `${funcName} is undefined`
-      );
+      throw Error(`${funcName} is undefined`);
     }
     // 参数解析
     const args = node.arguments.map((arg) => nodeIterator.interpret(arg));
@@ -194,18 +192,18 @@ const es5 = {
   // 赋值运算符， https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Expressions_and_Operators#%E8%B5%8B%E5%80%BC%E8%BF%90%E7%AE%97%E7%AC%A6
   AssignmentExpressionOperatortraverseMap: {
     "=": ($var, v) => ($var.$set(v), v),
-    "+=": ($var, v) => ($var.$set(v + $var.$get()), $var.$get()),
-    "-=": ($var, v) => ($var.$set(v - $var.$get()), $var.$get()),
-    "*=": ($var, v) => ($var.$set(v * $var.$get()), $var.$get()),
-    "/=": ($var, v) => ($var.$set(v / $var.$get()), $var.$get()),
-    "%=": ($var, v) => ($var.$set(v % $var.$get()), $var.$get()),
-    "**=": ($var, v) => ($var.$set(v ** $var.$get()), $var.$get()),
-    "<<=": ($var, v) => ($var.$set(v << $var.$get()), $var.$get()),
-    ">>=": ($var, v) => ($var.$set(v >> $var.$get()), $var.$get()),
-    ">>>=": ($var, v) => ($var.$set(v >>> $var.$get()), $var.$get()),
-    "|=": ($var, v) => ($var.$set(v | $var.$get()), $var.$get()),
-    "^=": ($var, v) => ($var.$set(v ^ $var.$get()), $var.$get()),
-    "&=": ($var, v) => ($var.$set(v & $var.$get()), $var.$get()),
+    "+=": ($var, v) => ($var.$set($var.$get() + v), $var.$get()),
+    "-=": ($var, v) => ($var.$set($var.$get() - v), $var.$get()),
+    "*=": ($var, v) => ($var.$set($var.$get() * v), $var.$get()),
+    "/=": ($var, v) => ($var.$set($var.$get() / v), $var.$get()),
+    "%=": ($var, v) => ($var.$set($var.$get() % v), $var.$get()),
+    "**=": ($var, v) => ($var.$set($var.$get() ** v), $var.$get()),
+    "<<=": ($var, v) => ($var.$set($var.$get() << v), $var.$get()),
+    ">>=": ($var, v) => ($var.$set($var.$get() >> v), $var.$get()),
+    ">>>=": ($var, v) => ($var.$set($var.$get() >>> v), $var.$get()),
+    "|=": ($var, v) => ($var.$set($var.$get() | v), $var.$get()),
+    "^=": ($var, v) => ($var.$set($var.$get() ^ v), $var.$get()),
+    "&=": ($var, v) => ($var.$set($var.$get() & v), $var.$get()),
   } as AssignmentExpressionOperatortraverseMapType,
   // 赋值表达式
   AssignmentExpression(nodeIterator: Interpreter<ESTree.AssignmentExpression>) {
@@ -409,7 +407,39 @@ const es5 = {
       if (Signal.isReturn(signal)) return signal;
     }
   },
-  ForInStatement() {},
+  // forin 遍历，是用来便利KV类型的（不要用在数组上）
+  // 会遍历自身 + 原型链上的属性
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...in#array_iteration_and_for...in
+  // https://stackoverflow.com/questions/500504/why-is-using-for-in-for-array-iteration-a-bad-idea
+  ForInStatement(nodeIterator: Interpreter<ESTree.ForInStatement>) {
+    const { node } = nodeIterator;
+    console.log("es5:ForInStatement", node);
+    const { left, right, body } = node;
+    // 临时的块级作用域，left变量在该作用域中声明
+    const forScope = new Scope(ScopeType.block, nodeIterator.scope);
+    // left 可以是 Identifier/VariableDeclaration
+    let $left;
+    if (left.type === "VariableDeclaration") {
+      const id = <ESTree.Identifier>left.declarations[0].id;
+      $left = forScope.$declare(left.kind, id.name, undefined);
+    } else if (left.type === "Identifier") {
+      $left = forScope.$find(left.name);
+    } else {
+      throw new Error(
+        `[ForInStatement] Unsupported left type "${left.type}"`
+      );
+    }
+
+    for (const k in nodeIterator.interpret(right)) {
+      // 将k的值更新到left中
+      $left.$set(k);
+      // 中断逻辑同ForStatement，执行body的时候需要能访问到left，所以使用forScope
+      const signal = nodeIterator.interpret(body, forScope);
+      if (Signal.isBreak(signal)) break;
+      if (Signal.isContinue(signal)) continue;
+      if (Signal.isReturn(signal)) return signal;
+    }
+  },
   ForOfStatement() {},
   Declaration() {},
   ClassDeclaration() {},

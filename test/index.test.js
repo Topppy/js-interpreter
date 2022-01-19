@@ -1,6 +1,10 @@
 import { run } from "../src/vm";
 
 describe("ji es5 VariableDeclaration", () => {
+  test("dev test", () => {
+    expect(run('')).toBe(undefined);
+  });
+
   // test("ArrowFunctionExpression", () => {
   //   expect(
   //     run(`var result = 0;
@@ -14,4 +18,5 @@ describe("ji es5 VariableDeclaration", () => {
   //     module.exports = result;`)
   //   ).toBe(2);
   // });
+  // for block内声明的临时变量i
 });

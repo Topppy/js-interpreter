@@ -72,6 +72,29 @@ describe("es5 loop", () => {
       }
     result = aa(1)
     module.exports = result;`)
-    ).toBe(10);
+    ).toBe(100);
+  });
+
+  // forIn block内声明的临时变量i
+  test("forIn", () => {
+    expect(
+      run(`var a = 'qwerty';var result = ''
+      for (let i in a) {
+        console.log(a[i])
+        result += a[i]
+      }
+      module.exports = result;`)
+    ).toBe("qwerty");
+  });
+  // forIn block外声明的变量i
+  test("forIn Identifier", () => {
+    expect(
+      run(`var a = 'qwerty';var result = ''; var i
+      for (i in a) {
+        console.log(a[i])
+        result += a[i]
+      }
+      module.exports = i;`)
+    ).toBe("5");
   });
 });

@@ -49,10 +49,12 @@ export default class Scope {
   // let类型变量定义
   $let(rawName: string, value: any) {
     this.content[rawName] = new ScopeVar("let", value);
+    return this.content[rawName]
   }
   // const类型变量定义
   $const(rawName: string, value: any) {
     this.content[rawName] = new ScopeVar("const", value);
+    return this.content[rawName]
   }
   // var类型变量定义
   $var(rawName: string, value: any) {
@@ -65,7 +67,7 @@ export default class Scope {
     }
     // 不管是否存在声明直接覆盖
     scope.content[rawName] = new ScopeVar("var", value);
-    console.log("scope:$var", rawName, scope);
+    return scope.content[rawName]
   }
   // 是否在当前作用域已定义let、const
   private $hasDefinition(kind: Kind, rawName: string): boolean {
