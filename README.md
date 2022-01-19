@@ -6,11 +6,39 @@
 
 [demo](https://topppy.github.io/js-interpreter/demo/index.html)
 
+demo用例：
 ```
 <script src="./dist/ji.js"></script>
 <script>
   var re = ji.run("var re = 3+4;console.log(re); module.exports=re");
 </script>
+```
+
+函数签名：
+```
+/**
+ * 
+ * @param code string 代码
+ * @param context 预置运行环境
+ * @returns 
+ */
+function run(code:string, context?: Context){}
+
+
+interface Context {
+  [key: string]: function
+}
+```
+
+例如：
+```
+const code = "var result = a(4); module.exports = result;"
+const injectContext = {
+  a: (res) => {
+    return res + 10;
+  },
+}
+ji.run(code, injectContext)
 ```
 
 ## 开发流程
@@ -24,6 +52,7 @@ yarn install
 yarn test:dev
 
 // 开发完特性之后，归档test/index.test.js测试用例到对应的xxfeature.test.js
+
 ```
 
 ## 测试

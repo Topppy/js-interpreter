@@ -1,8 +1,8 @@
 {
-  "name": "js-interpreter",
+  "name": "topppy-ji",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/vm.js",
   "scripts": {
     "test": "jest --silent",
     "test:dev": "jest test/index.test.js jest",

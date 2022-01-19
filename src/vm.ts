@@ -3,7 +3,6 @@
 const acorn = require("acorn");
 import Interpreter from "./interpreter";
 import Scope, { ScopeType } from "./scope";
-import { PropVar } from "./variable";
 
 /**
  * 
