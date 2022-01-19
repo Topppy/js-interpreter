@@ -4,12 +4,38 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>js解释器demo</title>
+    <style>
+      #code {
+        display: block;
+        min-height: 200px;
+        min-width: 375px;
+        width: 100%;
+      }
+      #out {
+        min-height: 200px;
+        border:solid 1px black;
+      }
+    </style>
   </head>
   <body>
+    <h1>js解释器demo</h1>
+    <h2>代码输入：</h2>
+    <textarea id="code">
+var re = 3+4;console.log(re); module.exports=re</textarea
+    >
+    <button onclick="runCode()">点击运行</button>
+    <h2>module.exports输出：</h2>
+    <div id="out"></div>
     <script src="../dist/ji.js"></script>
     <script>
-      ji.run("module.exports=3 + 4");
+      var $code = document.getElementById("code");
+      var $out = document.getElementById("out");
+      function runCode() {
+        var re = ji.run($code.value);
+        console.log("====re:", re);
+        $out.innerText = re;
+      }
     </script>
   </body>
 </html>

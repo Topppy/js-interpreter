@@ -19,7 +19,6 @@ node_modules
 # OSX
 .DS_Store
 
-/dist
 .erb/dll
 
 .idea

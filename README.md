@@ -2,6 +2,17 @@
 
 > 背景: 业务上陆续搞了几个在线编程游戏，涉及 python、C++、blockly，核心都是的 web 在线将其他语言转 AST 再 js 解释，运行 game，所以自己练练手 js 解释器
 
+## 使用
+
+[demo](https://topppy.github.io/js-interpreter/demo/index.html)
+
+```
+<script src="./dist/ji.js"></script>
+<script>
+  var re = ji.run("var re = 3+4;console.log(re); module.exports=re");
+</script>
+```
+
 ## 开发流程
 
 ```
@@ -20,6 +31,83 @@ yarn test:dev
 ```
 yarn test
 ```
+
+## todo
+
+- [x] Program
+- [x] VariableDeclaration
+- [x] ExpressionStatement
+- [x] BinaryExpression
+- [x] Literal
+- [x] MemberExpression
+- [x] CallExpression
+- [x] Identifier
+- [x] AssignmentExpressionOperatortraverseMap
+- [x] AssignmentExpression
+- [x] FunctionDeclaration
+- [x] FunctionExpression
+- [x] BlockStatement
+- [ ] CatchClause
+- [ ] ArrowFunctionExpression
+- [ ] VariableDeclarator
+- [ ] EmptyStatement
+- [ ] DebuggerStatement
+- [ ] WithStatement
+- [ ] LabeledStatement
+- [x] ReturnStatement
+- [x] BreakStatement
+- [x] ContinueStatement
+- [x] IfStatement
+- [x] SwitchCase
+- [x] SwitchStatement
+- [ ] ThrowStatement
+- [ ] TryStatement
+- [ ] WhileStatement
+- [ ] DoWhileStatement
+- [x] ForStatement
+- [ ] ForInStatement
+- [ ] ForOfStatement
+- [ ] Declaration
+- [ ] ClassDeclaration
+- [ ] ThisExpression
+- [ ] ArrayExpression
+- [x] ObjectExpression
+- [ ] YieldExpression
+- [ ] UnaryExpression
+- [x] UpdateExpression
+- [ ] LogicalExpression
+- [ ] ConditionalExpression
+- [ ] NewExpression
+- [ ] SequenceExpression
+- [ ] TemplateLiteral
+- [ ] TaggedTemplateExpression
+- [ ] ClassExpression
+- [ ] MetaProperty
+- [ ] AwaitExpression
+- [ ] ImportExpression
+- [ ] ChainExpression
+- [ ] PrivateIdentifier
+- [ ] Property
+- [ ] PropertyDefinition
+- [ ] AssignmentProperty
+- [ ] Super
+- [ ] TemplateElement
+- [ ] SpreadElement
+- [ ] ObjectPattern
+- [ ] ArrayPattern
+- [ ] RestElement
+- [ ] AssignmentPattern
+- [ ] ClassBody
+- [ ] Class
+- [ ] MethodDefinition
+- [ ] ImportDeclaration
+- [ ] ExportNamedDeclaration
+- [ ] ExportDefaultDeclaration
+- [ ] ExportAllDeclaration
+- [ ] ImportSpecifier
+- [ ] ImportDefaultSpecifier
+- [ ] ImportNamespaceSpecifier
+- [ ] ExportSpecifier
 
 ## 参考：
 

@@ -497,6 +497,7 @@ const es5 = {
   ClassBody() {},
   Class() {},
   MethodDefinition() {},
+  // 如何解析source呢？文件/包从哪里导入？
   ImportDeclaration() {},
   ExportNamedDeclaration() {},
   ExportDefaultDeclaration() {},
