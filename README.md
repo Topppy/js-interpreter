@@ -78,7 +78,6 @@ yarn test
 - [x] BlockStatement
 - [ ] CatchClause
 - [ ] ArrowFunctionExpression
-- [ ] VariableDeclarator
 - [ ] EmptyStatement
 - [ ] DebuggerStatement
 - [ ] WithStatement
@@ -91,8 +90,8 @@ yarn test
 - [x] SwitchStatement
 - [ ] ThrowStatement
 - [ ] TryStatement
-- [ ] WhileStatement
-- [ ] DoWhileStatement
+- [x] WhileStatement
+- [x] DoWhileStatement
 - [x] ForStatement
 - [x] ForInStatement
 - [ ] ForOfStatement

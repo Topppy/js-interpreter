@@ -118,4 +118,27 @@ describe("es5 loop", () => {
       module.exports = result;`)
     ).toBe(34);
   });
+
+  test("while Statement", () => {
+    expect(
+      run(`var a = 0
+      while (a <5) {
+        a++
+      } 
+      module.exports = a`)
+    ).toBe(5);
+  });
+
+  test("do while Statement", () => {
+    expect(
+      run(`var a = 0
+      do {
+        a++
+        if (a > 3) {
+          break
+        }
+      } while (a <5) 
+      module.exports = a`)
+    ).toBe(4);
+  });
 });

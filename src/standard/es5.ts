@@ -380,8 +380,38 @@ const es5 = {
 
   ThrowStatement() {},
   TryStatement() {},
-  WhileStatement() {},
-  DoWhileStatement() {},
+  WhileStatement(nodeIterator: Interpreter<ESTree.WhileStatement>) {
+    const { node } = nodeIterator;
+    console.log("es5:WhileStatement", node);
+    const { test, body } = node;
+    if (!test) throw Error("Uncaught SyntaxError: Unexpected token ')'");
+    while (nodeIterator.interpret(test, nodeIterator.scope)) {
+      // 作用域
+      const whileScope = new Scope(ScopeType.block, nodeIterator.scope);
+      // BlockStatement, 处理BlockStatement可能返回的3种中断
+      const signal = nodeIterator.interpret(body, whileScope);
+      if (Signal.isBreak(signal)) break;
+      if (Signal.isContinue(signal)) continue;
+      if (Signal.isReturn(signal))
+        throw Error("Uncaught SyntaxError: Illegal return statement");
+    }
+  },
+  DoWhileStatement(nodeIterator: Interpreter<ESTree.WhileStatement>) {
+    const { node } = nodeIterator;
+    console.log("es5:WhileStatement", node);
+    const { test, body } = node;
+    if (!test) throw Error("Uncaught SyntaxError: Unexpected token ')'");
+    do {
+      // 作用域
+      const whileScope = new Scope(ScopeType.block, nodeIterator.scope);
+      // BlockStatement, 处理BlockStatement可能返回的3种中断
+      const signal = nodeIterator.interpret(body, whileScope);
+      if (Signal.isBreak(signal)) break;
+      if (Signal.isContinue(signal)) continue;
+      if (Signal.isReturn(signal))
+        throw Error("Uncaught SyntaxError: Illegal return statement");
+    } while (nodeIterator.interpret(test, nodeIterator.scope));
+  },
   // for 循环语句节点
   ForStatement(nodeIterator: Interpreter<ESTree.ForStatement>) {
     const { node } = nodeIterator;
@@ -450,11 +480,9 @@ const es5 = {
   // 数组表达式
   ArrayExpression(nodeIterator: Interpreter<ESTree.ArrayExpression>) {
     const { node } = nodeIterator;
-    console.log('es5:ArrayExpression', node)
-    let arr = node.elements.map((el) =>
-      el ? nodeIterator.interpret(el) : el
-    );
-    return arr
+    console.log("es5:ArrayExpression", node);
+    let arr = node.elements.map((el) => (el ? nodeIterator.interpret(el) : el));
+    return arr;
   },
   // 对象表达式，es5的对象表达式只支持2种：Identifier 和 Literal，Expression是在es2015后支持的
   ObjectExpression(nodeIterator: Interpreter<ESTree.ObjectExpression>) {
